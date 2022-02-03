@@ -1120,7 +1120,7 @@ int main(int argc, char *argv[])
    args.AddOption(&tol_ode, "-tol", "--ode-tolerance",
                   "Difference tolerance for ODE integration.");
    args.AddOption(&ode_solver_type, "-s", "--ode-solver",
-                  "ODE solver: 1 - SDIRK 212, 2 - SDIRK 534.");
+                  "ODE solver: 1 - SDIRK 212, 2 - SDIRK 534, 3 - Backward Euler.");
    args.AddOption(&ode_epus, "-epus", "--err-per-unit-step", "-eps",
                   "--err-per-step",
                   "Select error value used by ODE controller.");
@@ -1547,16 +1547,17 @@ int main(int argc, char *argv[])
       dt = cfl * dt_adv;
    }
 
-   ODEController ode_controller;
+//   ODEController ode_controller;
    PIDAdjFactor dt_acc(kP_acc, kI_acc, kD_acc);
    IAdjFactor   dt_rej(kI_rej);
    DeadZoneLimiter dt_lim(lim_a, lim_b, lim_max);
 
-   ODEEmbeddedSolver * ode_solver   = NULL;
+   ODESolver * ode_solver   = NULL;
    switch (ode_solver_type)
    {
-      case 1: ode_solver = new SDIRK212Solver; break;
-      case 2: ode_solver = new SDIRK534Solver; break;
+      //case 1: ode_solver = new SDIRK212Solver; break;
+      //case 2: ode_solver = new SDIRK534Solver; break;
+      case 3: ode_solver = new BackwardEulerSolver; break;
    }
 
    ParGridFunction psi(&fes_h1);
@@ -1940,7 +1941,7 @@ int main(int argc, char *argv[])
 
    oper.SetTime(0.0);
    ode_solver->Init(oper);
-
+/*
    ode_controller.Init(*ode_solver, ode_diff_msr,
                        dt_acc, dt_rej, dt_lim);
 
@@ -1956,7 +1957,7 @@ int main(int argc, char *argv[])
       ofs_controller.open("transport2d_cntrl.dat");
       ode_controller.SetOutput(ofs_controller);
    }
-
+*/
    L2_FECollection fec_l2_o0(0, dim, BasisType::GaussLobatto);
    // Finite element space for a scalar (thermodynamic quantity)
    ParFiniteElementSpace fes_l2_o0(&pmesh, &fec_l2_o0);
@@ -2103,7 +2104,8 @@ int main(int argc, char *argv[])
    if (mpi.Root()) { cout << "\nBegin time stepping at t = " << t << endl; }
    while (t < t_final)
    {
-      ode_controller.Run(u, t, t_final);
+      //ode_controller.Run(u, t, t_final);
+      ode_solver->Run(u, t, dt, t_final);
 
       if (mpi.Root()) { cout << "Time stepping paused at t = " << t << endl; }
 
@@ -2183,13 +2185,16 @@ int main(int argc, char *argv[])
       {
          oper.DisplayToGLVis();
       }
-      if (visit)
+      if (t_final - t > 1e-8 * (t_final - t_init) || cycle % vis_steps == 0)
       {
-         cycle++;
-         oper.PrepareDataFields();
-         dc->SetCycle(cycle);
-         dc->SetTime(t);
-         dc->Save();
+          if (visit)
+          {
+             cycle++;
+             oper.PrepareDataFields();
+             dc->SetCycle(cycle);
+             dc->SetTime(t);
+             dc->Save();
+          }
       }
 
       if (t_final - t > 1e-8 * (t_final - t_init) && !ss)
@@ -2431,7 +2436,7 @@ int main(int argc, char *argv[])
       if (mpi.Root()) { cout << "Solution error: " << error << endl; }
    }
    */
-   if (mpi.Root()) { ofs_controller.close(); }
+   //if (mpi.Root()) { ofs_controller.close(); }
    // Free the used memory.
    delete eqdsk;
    delete ode_solver;
