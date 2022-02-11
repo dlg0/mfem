@@ -2105,7 +2105,7 @@ int main(int argc, char *argv[])
    while (t < t_final)
    {
       //ode_controller.Run(u, t, t_final);
-      ode_solver->Run(u, t, dt, t_final);
+      ode_solver->Step(u, t, dt);
 
       if (mpi.Root()) { cout << "Time stepping paused at t = " << t << endl; }
 
@@ -2185,16 +2185,13 @@ int main(int argc, char *argv[])
       {
          oper.DisplayToGLVis();
       }
-      if (t_final - t > 1e-8 * (t_final - t_init) || cycle % vis_steps == 0)
+      if (visit)
       {
-          if (visit)
-          {
-             cycle++;
-             oper.PrepareDataFields();
-             dc->SetCycle(cycle);
-             dc->SetTime(t);
-             dc->Save();
-          }
+         cycle++;
+         oper.PrepareDataFields();
+         dc->SetCycle(cycle);
+         dc->SetTime(t);
+         dc->Save();
       }
 
       if (t_final - t > 1e-8 * (t_final - t_init) && !ss)
