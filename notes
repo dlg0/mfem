@@ -1,0 +1,17 @@
+spack load cmake hypre metis parmetis superlu-dist gcc@9.2.0 mpich
+cd build
+cmake .. -DMFEM_USE_MPI=YES -DMFEM_USE_SUPERLU=YES -DMFEM_USE_METIS_5=YES -DCMAKE_INSTALL_PREFIX=install/ -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG="-DDEBUG"
+cp config/_config.hpp ../config/
+make -j
+make -j tests
+make -j examples
+make -j miniapps
+make -j transport2d
+
+ctest
+mpirun -np 4 ./ex11p -m ../data/square-disc.mesh -slu
+cd miniapps/plasma/
+make transport2d
+
+
+miniapps/plasma/transport2d -m ~/code/mfem-analysis/3coupled/slab.mesh -ic ~/code/mfem-analysis/3coupled/transport2d_ics.inp -bc ~/code/mfem-analysis/3coupled/transport2d_bcs.inp -ec ~/code/mfem-analysis/3coupled/transport2d_ecs.inp -es ~/code/mfem-analysis/3coupled/transport2d_ess.inp -eqn-w '1 1 1 1 1' -fld-m '1e15 1e17 1e4 1 1' -op 7 -term-flags '-1 -1 3 0 0' -vs 1 -tf 1.0e-12 -o 3 -visit -no-amr -l 1 -dt 1.0e-12 -pt 2 -dza 0 -dzb 1e20 -lmaxit 1 -nmaxit 1
